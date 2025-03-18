@@ -1,0 +1,71 @@
+name: Build and Upload APK
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Debug Working Directory
+      run: |
+        echo "Current Directory: $(pwd)"
+        echo "List Files in Root:"
+        ls -l
+        echo "List Files in MyNewProject:"
+        ls -l MyNewProject || echo "⚠️ MyNewProject directory is missing!"
+
+    - name: Debug Android Project
+      run: |
+        echo "Checking Android project directory..."
+        ls -l $GITHUB_WORKSPACE/MyNewProject/ || echo "❌ MyNewProject directory is empty!"
+        ls -l $GITHUB_WORKSPACE/MyNewProject/android/ || echo "❌ Android directory is missing!"
+
+    - name: Ensure MyNewProject Exists
+      run: mkdir -p $GITHUB_WORKSPACE/MyNewProject
+
+    - name: Fix Permissions
+      run: sudo chmod -R 777 $GITHUB_WORKSPACE/MyNewProject
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20.x'
+
+    - name: Install Dependencies
+      run: |
+        cd $GITHUB_WORKSPACE/MyNewProject
+        npm install
+
+    - name: Build APK
+      run: |
+        cd $GITHUB_WORKSPACE/MyNewProject/android
+        chmod +x gradlew
+        ./gradlew assembleRelease
+
+    - name: Verify APK Existence
+      run: |
+        echo "Checking APK Directory..."
+        ls -l $GITHUB_WORKSPACE/MyNewProject/android/app/build/outputs/apk/release/ || echo "❌ APK Directory Missing"
+        ls -l $GITHUB_WORKSPACE/MyNewProject/android/app/build/outputs/apk/release/app-release.apk || echo "❌ APK Not Found"
+
+    - name: Debug FTP Connection
+      run: |
+        echo "Testing FTP Connection..."
+        curl --ftp-ssl -v ftp://${{ secrets.FTP_SERVER }} || echo "❌ FTP Connection Failed"
+
+    - name: Upload APK via FTP
+      env:
+        FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+        FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y lftp
+        lftp -e "set ftp:ssl-allow no; put $GITHUB_WORKSPACE/MyNewProject/android/app/build/outputs/apk/release/app-release.apk -o /public_html/apkdownload/app-release.apk; bye" -u "$FTP_USERNAME","$FTP_PASSWORD" ftp://$FTP_SERVER
