@@ -18,20 +18,20 @@ jobs:
         echo "Current Directory: $(pwd)"
         echo "List Files in Root:"
         ls -l
-        echo "List Files in MyNewProject:"
-        ls -l MyNewProject || echo "⚠️ MyNewProject directory is missing!"
+        echo "List Files in template:"
+        ls -l template || echo "⚠️ template directory is missing!"
 
     - name: Debug Android Project
       run: |
         echo "Checking Android project directory..."
-        ls -l $GITHUB_WORKSPACE/MyNewProject/ || echo "❌ MyNewProject directory is empty!"
-        ls -l $GITHUB_WORKSPACE/MyNewProject/android/ || echo "❌ Android directory is missing!"
+        ls -l $GITHUB_WORKSPACE/template/ || echo "❌ template directory is empty!"
+        ls -l $GITHUB_WORKSPACE/template/android/ || echo "❌ Android directory is missing!"
 
-    - name: Ensure MyNewProject Exists
-      run: mkdir -p $GITHUB_WORKSPACE/MyNewProject
+    - name: Ensure template Exists
+      run: mkdir -p $GITHUB_WORKSPACE/template
 
     - name: Fix Permissions
-      run: sudo chmod -R 777 $GITHUB_WORKSPACE/MyNewProject
+      run: sudo chmod -R 777 $GITHUB_WORKSPACE/template
 
     - name: Set up Node.js
       uses: actions/setup-node@v3
@@ -40,20 +40,20 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        cd $GITHUB_WORKSPACE/MyNewProject
+        cd $GITHUB_WORKSPACE/template
         npm install
 
     - name: Build APK
       run: |
-        cd $GITHUB_WORKSPACE/MyNewProject/android
+        cd $GITHUB_WORKSPACE/template/android
         chmod +x gradlew
         ./gradlew assembleRelease
 
     - name: Verify APK Existence
       run: |
         echo "Checking APK Directory..."
-        ls -l $GITHUB_WORKSPACE/MyNewProject/android/app/build/outputs/apk/release/ || echo "❌ APK Directory Missing"
-        ls -l $GITHUB_WORKSPACE/MyNewProject/android/app/build/outputs/apk/release/app-release.apk || echo "❌ APK Not Found"
+        ls -l $GITHUB_WORKSPACE/template/android/app/build/outputs/apk/release/ || echo "❌ APK Directory Missing"
+        ls -l $GITHUB_WORKSPACE/template/android/app/build/outputs/apk/release/app-release.apk || echo "❌ APK Not Found"
 
     - name: Debug FTP Connection
       run: |
@@ -68,4 +68,4 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y lftp
-        lftp -e "set ftp:ssl-allow no; put $GITHUB_WORKSPACE/MyNewProject/android/app/build/outputs/apk/release/app-release.apk -o /public_html/apkdownload/app-release.apk; bye" -u "$FTP_USERNAME","$FTP_PASSWORD" ftp://$FTP_SERVER
+        lftp -e "set ftp:ssl-allow no; put $GITHUB_WORKSPACE/template/android/app/build/outputs/apk/release/app-release.apk -o /public_html/apkdownload/app-release.apk; bye" -u "$FTP_USERNAME","$FTP_PASSWORD" ftp://$FTP_SERVER
